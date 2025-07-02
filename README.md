@@ -12,6 +12,14 @@ A simple JSON-like parser and tokenizer in Python.
 - Python 3.10+
 - [pytest](https://pytest.org/) (for running tests)
 
+## Installation
+
+Install the package in editable mode with test dependencies:
+
+```sh
+pip install -e .[test]
+```
+
 ## Usage
 
 ### 1. Parse a JSON file
