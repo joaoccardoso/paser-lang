@@ -1,4 +1,4 @@
-# Language Parser
+# json-parser & logic-parser
 
 A Python project with two main components:
 - **json-parser**: A simple JSON-like parser and tokenizer.
@@ -30,10 +30,10 @@ A Python project with two main components:
 
 ## Installation
 
-Install the package in editable mode with test dependencies:
+Install the package in editable mode and the test dependencies using `requirements.txt`:
 
 ```sh
-pip install -e .[test]
+pip install -r requirements.txt
 ```
 
 ---
@@ -130,4 +130,5 @@ main.py          # Example usage
 ---
 
 ## License
+
 MIT
