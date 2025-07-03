@@ -33,7 +33,7 @@ def test_tokenize_or():
 
 # Parser and evaluation tests
 def test_parse_and_eval_simple():
-    stmt = "A = 1\nB = 0\nR = A ^ B\nR"
+    stmt = "ABC := 1\nB := 0\nR := ABC ^ B\nR"
     tokens = token.tokenize(stmt)
     parser = Parser(tokens)
     result = parser.parse()
@@ -41,7 +41,7 @@ def test_parse_and_eval_simple():
 
 
 def test_parse_and_eval_not():
-    stmt = "A = 0\nR = ~A\nR"
+    stmt = "A := 0\nR := ~A\nR"
     tokens = token.tokenize(stmt)
     parser = Parser(tokens)
     result = parser.parse()
@@ -49,7 +49,7 @@ def test_parse_and_eval_not():
 
 
 def test_parse_and_eval_or():
-    stmt = "A = 0\nB = 1\nR = A v B\nR"
+    stmt = "A := 0\nB := 1\nR := A v B\nR"
     tokens = token.tokenize(stmt)
     parser = Parser(tokens)
     result = parser.parse()
@@ -57,7 +57,7 @@ def test_parse_and_eval_or():
 
 
 def test_parse_and_eval_precedence():
-    stmt = "A = 1\nB = 0\nC = 1\nR = ~(A ^ B) v C\nR"
+    stmt = "A := 1\nB := 0\nC := 1\nR := ~(A ^ B) v C\nR"
     tokens = token.tokenize(stmt)
     parser = Parser(tokens)
     result = parser.parse()

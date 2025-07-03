@@ -108,8 +108,8 @@ class Parser:
                 raise SyntaxError(f"Invalid variable name {key}")
 
             next_t = self.peek()
-            if next_t and next_t.type == TokenType.EQUAL:
-                self.consume(TokenType.EQUAL)
+            if next_t and next_t.type == TokenType.ASSIGN:
+                self.consume(TokenType.ASSIGN)
                 value = self.parse_assignment()
                 self.memory[key] = value
                 return self.parse()

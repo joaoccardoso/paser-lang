@@ -3,6 +3,9 @@ import enum
 from typing import Any, Optional
 
 
+RESERVED_SYMBOLS = ":()^~= \n\t"
+
+
 class TokenType(enum.Enum):
     WHITE_SPACE = enum.auto()
     OPEN_P = enum.auto()
@@ -13,6 +16,7 @@ class TokenType(enum.Enum):
     AND = enum.auto()
     NOT = enum.auto()
     EQUAL = enum.auto()
+    ASSIGN = enum.auto()
 
 
 @dataclass
@@ -44,12 +48,22 @@ def tokenize(content: str) -> list[Token]:
                 tokens.append(Token(TokenType.EQUAL))
             case "0" | "1":
                 tokens.append(Token(TokenType.LITERAL, c))
+            case ":":
+                i += 1
+                if i >= len(content):
+                    raise ValueError("Unexpected end of file")
+                c = content[i]
+                if c == "=":
+                    tokens.append(Token(TokenType.ASSIGN))
+                else:
+                    raise ValueError(f"Invalid Character: :{c}")
+
             case _ if c.isalpha():
                 identifier = c
                 i += 1
                 while i < len(content):
                     c = content[i]
-                    if c not in "()^~= \n\t":
+                    if c not in RESERVED_SYMBOLS:
                         identifier += c
                     else:
                         i -= 1

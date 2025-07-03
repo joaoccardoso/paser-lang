@@ -1,32 +1,26 @@
-# json-parser & logic-parser
+# Parser Lang
 
 A Python project with two main components:
 - **json-parser**: A simple JSON-like parser and tokenizer.
 - **logic-parser**: A parser and evaluator for propositional logic expressions.
 
----
-
 ## Features
 
-### json-parser
+### json_parser
 - Tokenizes JSON-like input into tokens
 - Parses tokens into Python data structures (`dict`, `list`, `int`, `float`, `bool`, `None`)
 - Handles nested objects and arrays
 - Provides clear error messages for invalid input
 
-### logic-parser
+### logic_parser
 - Tokenizes and parses propositional logic expressions (supports `~` (NOT), `^` (AND), `v` (OR), identifiers, parentheses)
-- Evaluates logic expressions with variable assignment
+- Evaluates logic expressions with variable assignment (`:=`)
 - Supports operator precedence: NOT > AND > OR
-
----
 
 ## Requirements
 
 - Python 3.10+
 - [pytest](https://pytest.org/) (for running tests)
-
----
 
 ## Installation
 
@@ -36,13 +30,9 @@ Install the package in editable mode and the test dependencies using `requiremen
 pip install -r requirements.txt
 ```
 
----
-
 ## Usage
 
 ### 1. Parse a JSON file
-
-Example usage is provided in `main.py`:
 
 ```python
 from pathlib import Path
@@ -65,18 +55,16 @@ if __name__ == "__main__":
 
 ### 2. Parse and evaluate a logic expression
 
-Example usage for logic expressions:
-
 ```python
 from logic_parser import token
 from logic_parser.parser import Parser
 
 def main():
     stmt = """
-        A = 1
-        B = 0
-        C = 1
-        R = ~(A^B)vC
+        A := 1
+        B := 0
+        C := 1
+        R := ~(A^B)vC
         R
     """
     tokens = token.tokenize(stmt)
@@ -88,23 +76,11 @@ if __name__ == "__main__":
     main()
 ```
 
----
-
-## Running
-
-### Run the JSON parser
-
-```sh
-python main.py
-```
-
-### Run tests
+## Running tests
 
 ```sh
 pytest
 ```
-
----
 
 ## Project Structure
 
@@ -120,14 +96,6 @@ main.py          # Example usage
     test_json_parser.py  # Pytest test cases for JSON parser
     test_logic_parser.py # Pytest test cases for logic parser
 ```
-
----
-
-## Customization
-
-- Edit or extend `json_parser/token.py`, `json_parser/parser.py`, `logic_parser/token.py`, and `logic_parser/parser.py` to support more features or custom syntax.
-
----
 
 ## License
 
