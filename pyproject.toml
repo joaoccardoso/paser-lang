@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "paser-lang"
 version = "0.1.0"
@@ -6,11 +10,6 @@ authors = [{ name = "hereisjohnny2", email = "carvalho.joaomc@gamil.com" }]
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
 dependencies = []
 
 [project.optional-dependencies]
@@ -18,3 +17,6 @@ test = ["pytest"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.setuptools]
+packages = ["json_parser", "logic_parser"]
