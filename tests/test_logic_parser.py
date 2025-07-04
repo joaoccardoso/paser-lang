@@ -6,7 +6,8 @@ from logic_parser.parser import Parser
 # Tokenizer tests
 def test_tokenize_simple_logic():
     stmt = "A ^ B"
-    tokens = token.tokenize(stmt)
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
     types = [t.type for t in tokens]
     assert types == [
         token.TokenType.IDENTIFIER,
@@ -19,14 +20,16 @@ def test_tokenize_simple_logic():
 
 def test_tokenize_not():
     stmt = "~A"
-    tokens = token.tokenize(stmt)
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
     types = [t.type for t in tokens]
     assert types == [token.TokenType.NOT, token.TokenType.IDENTIFIER]
 
 
 def test_tokenize_or():
     stmt = "A v B"
-    tokens = token.tokenize(stmt)
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
     types = [t.type for t in tokens]
     assert token.TokenType.OR in types
 
@@ -34,7 +37,8 @@ def test_tokenize_or():
 # Parser and evaluation tests
 def test_parse_and_eval_simple():
     stmt = "ABC := 1\nB := 0\nR := ABC ^ B\nR"
-    tokens = token.tokenize(stmt)
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
     assert result.eval() == 0
@@ -42,7 +46,8 @@ def test_parse_and_eval_simple():
 
 def test_parse_and_eval_not():
     stmt = "A := 0\nR := ~A\nR"
-    tokens = token.tokenize(stmt)
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
     assert result.eval() == 1 or result.eval() is True
@@ -50,7 +55,8 @@ def test_parse_and_eval_not():
 
 def test_parse_and_eval_or():
     stmt = "A := 0\nB := 1\nR := A v B\nR"
-    tokens = token.tokenize(stmt)
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
     assert result.eval() == 1
@@ -58,15 +64,17 @@ def test_parse_and_eval_or():
 
 def test_parse_and_eval_precedence():
     stmt = "A := 1\nB := 0\nC := 1\nR := ~(A ^ B) v C\nR"
-    tokens = token.tokenize(stmt)
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
     assert result.eval() == 1
 
 
 def test_parse_and_eval_parentheses():
-    stmt = "A = 1\nB = 0\nR = ~(A ^ (B v A))\nR"
-    tokens = token.tokenize(stmt)
+    stmt = "A := 1\nB := 0\nR := ~(A ^ (B v A))\nR"
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
     assert result.eval() == 0
@@ -75,6 +83,7 @@ def test_parse_and_eval_parentheses():
 def test_invalid_token():
     stmt = "A = 1\nB = 0\nR = A $ B\nR"
     with pytest.raises(ValueError):
-        tokens = token.tokenize(stmt)
+        tkz = token.Tokenizer(stmt)
+        tokens = tkz.tokenize()
         parser = Parser(tokens)
         parser.parse()

@@ -7,7 +7,7 @@ RESERVED_SYMBOLS = ":()^~= \n\t"
 
 
 class TokenType(enum.Enum):
-    WHITE_SPACE = enum.auto()
+    WHITESPACE = enum.auto()
     OPEN_P = enum.auto()
     CLOSE_P = enum.auto()
     IDENTIFIER = enum.auto()
@@ -17,61 +17,72 @@ class TokenType(enum.Enum):
     NOT = enum.auto()
     EQUAL = enum.auto()
     ASSIGN = enum.auto()
+    COLON = enum.auto()
 
 
 @dataclass
 class Token:
+    token: str
     type: TokenType
     value: Optional[Any] = None
 
 
-def tokenize(content: str) -> list[Token]:
-    tokens = []
-    i = 0
-    while i < len(content):
-        c = content[i]
-        if c in "\n\t ":
-            i += 1
-            continue
-        match c:
-            case "~":
-                tokens.append(Token(TokenType.NOT))
-            case "^":
-                tokens.append(Token(TokenType.AND))
-            case "v":
-                tokens.append(Token(TokenType.OR))
-            case "(":
-                tokens.append(Token(TokenType.OPEN_P))
-            case ")":
-                tokens.append(Token(TokenType.CLOSE_P))
-            case "=":
-                tokens.append(Token(TokenType.EQUAL))
-            case "0" | "1":
-                tokens.append(Token(TokenType.LITERAL, c))
-            case ":":
-                i += 1
-                if i >= len(content):
-                    raise ValueError("Unexpected end of file")
-                c = content[i]
-                if c == "=":
-                    tokens.append(Token(TokenType.ASSIGN))
-                else:
-                    raise ValueError(f"Invalid Character: :{c}")
+class Tokenizer:
+    def __init__(self, content: str) -> None:
+        self.content = content
+        self.tokens = []
+        self.pos = 0
 
-            case _ if c.isalpha():
-                identifier = c
-                i += 1
-                while i < len(content):
-                    c = content[i]
-                    if c not in RESERVED_SYMBOLS:
-                        identifier += c
-                    else:
-                        i -= 1
-                        break
-                    i += 1
-                tokens.append(Token(TokenType.IDENTIFIER, identifier))
-            case _:
-                raise ValueError(f"Invalid Character: {c}")
-        i += 1
+    def peek(self, next: int = 0):
+        if self.pos + next < len(self.content):
+            return self.content[self.pos + next]
+        return None
 
-    return tokens
+    def consume(self, expected_char: str, type: TokenType, value: Any | None = None):
+        if not (c := self.peek()):
+            raise ValueError("Unexpected end of file")
+        if c and c == expected_char:
+            self.pos += 1
+            return Token(c, type, value)
+        raise ValueError(f"Expected character {expected_char} got {c}")
+
+    def tokenize(self):
+        while (c := self.peek()) is not None:
+            match c:
+                case "\n" | "\t" | " " | "":
+                    self.pos += 1
+                case "~":
+                    self.tokens.append(self.consume("~", TokenType.NOT))
+                case "^":
+                    self.tokens.append(self.consume("^", TokenType.AND))
+                case "v":
+                    self.tokens.append(self.consume("v", TokenType.OR))
+                case "(":
+                    self.tokens.append(self.consume("(", TokenType.OPEN_P))
+                case ")":
+                    self.tokens.append(self.consume(")", TokenType.CLOSE_P))
+                case "=":
+                    self.tokens.append(self.consume("=", TokenType.EQUAL))
+                case "0" | "1":
+                    self.pos += 1
+                    self.tokens.append(Token(c, TokenType.LITERAL, c))
+                case ":" if self.peek(1) == "=":
+                    self.consume(":", TokenType.COLON)
+                    self.consume("=", TokenType.EQUAL)
+                    self.tokens.append(Token(":=", TokenType.ASSIGN))
+                case _ if c.isalpha():
+                    self.pos += 1
+                    identifier = c
+                    while c := self.peek():
+                        if c not in RESERVED_SYMBOLS:
+                            self.pos += 1
+                            identifier += c
+                        else:
+                            break
+                    self.tokens.append(
+                        Token(identifier, TokenType.IDENTIFIER, identifier)
+                    )
+                case _:
+                    raise ValueError(f"Invalid Character: {c}")
+
+        return self.tokens
