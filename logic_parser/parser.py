@@ -1,10 +1,12 @@
-from typing import Any, Callable
+from typing import Callable
 from logic_parser.expr import BinaryExpr, Expr, LiteralExpr, NoneExpr, UnaryExpr
 from logic_parser.token import Token, TokenType
 
 
 class Parser:
-    def __init__(self, tokens: list[Token], memory: dict[str, Any] = {}) -> None:
+    def __init__(
+        self, tokens: list[Token], memory: dict[str, Expr | bool] = {}
+    ) -> None:
         self.tokens = tokens
         self.memory = memory
         self.pos = 0
@@ -70,6 +72,10 @@ class Parser:
             self.consume(t.type)
             return self.parse()
 
+        if t.type == TokenType.LITERAL:
+            self.consume(TokenType.LITERAL)
+            return LiteralExpr(t.value)
+
         if t and t.type == TokenType.IDENTIFIER:
             key = self.consume(TokenType.IDENTIFIER).value
             if not isinstance(key, str):
@@ -90,7 +96,7 @@ class Parser:
             return LiteralExpr(value)
         elif t and t.type == TokenType.OPEN_P:
             self.consume(TokenType.OPEN_P)
-            expr = self.parse_or()
+            expr = self.parse()
             self.consume(TokenType.CLOSE_P)
             return expr
         else:
