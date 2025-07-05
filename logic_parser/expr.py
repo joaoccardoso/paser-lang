@@ -7,7 +7,7 @@ from logic_parser.token import TokenType
 
 class Expr(abc.ABC):
     @abc.abstractmethod
-    def eval(self): ...
+    def eval(self) -> bool: ...
 
 
 @dataclass

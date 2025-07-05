@@ -3,33 +3,51 @@ import enum
 from typing import Any, Optional
 
 
-RESERVED_SYMBOLS = "!<>:()^~=\n\t "
-
-
 class TokenType(enum.Enum):
-    WHITESPACE = enum.auto()
+    WHITESPACE = ""
+    NEW_LINE = "\n"
 
-    OPEN_P = enum.auto()
-    CLOSE_P = enum.auto()
+    OPEN_P = "("
+    CLOSE_P = ")"
+
+    COMMENT = "//"
 
     # Value Tokens
-    IDENTIFIER = enum.auto()
-    LITERAL = enum.auto()
+    IDENTIFIER = "IDENTIFIER"
+    LITERAL = "LITERAL"
 
     # Operators
-    OR = enum.auto()
-    AND = enum.auto()
-    NOT = enum.auto()
-    IMPLICATION = enum.auto()
-    BICONDITIONAL = enum.auto()
-    XOR = enum.auto()
+    OR = "v"
+    AND = "^"
+    NOT = "~"
+    IMPLICATION = "=>"
+    BICONDITIONAL = "<=>"
+    XOR = "!="
 
-    GREATER = enum.auto()
-    LESS = enum.auto()
-    BANG = enum.auto()
-    EQUAL = enum.auto()
-    COLON = enum.auto()
-    ASSIGN = enum.auto()
+    GREATER = ">"
+    LESS = "<"
+    BANG = "!"
+    EQUAL = "="
+    COLON = ":"
+    ASSIGN = ":="
+    SLASH = "/"
+
+
+RESERVED_SYMBOLS = [
+    " ",
+    TokenType.WHITESPACE.value,
+    TokenType.NEW_LINE.value,
+    TokenType.OPEN_P.value,
+    TokenType.CLOSE_P.value,
+    TokenType.AND.value,
+    TokenType.NOT.value,
+    TokenType.GREATER.value,
+    TokenType.LESS.value,
+    TokenType.BANG.value,
+    TokenType.EQUAL.value,
+    TokenType.COLON.value,
+    TokenType.SLASH.value,
+]
 
 
 @dataclass
@@ -61,8 +79,6 @@ class Tokenizer:
     def tokenize(self):
         while (c := self.peek()) is not None:
             match c:
-                case "\n" | "\t" | " " | "":
-                    self.pos += 1
                 case "~":
                     self.tokens.append(self.consume("~", TokenType.NOT))
                 case "^":
@@ -73,6 +89,16 @@ class Tokenizer:
                     self.tokens.append(self.consume("(", TokenType.OPEN_P))
                 case ")":
                     self.tokens.append(self.consume(")", TokenType.CLOSE_P))
+                case "/" if self.peek(1) == "/":
+                    self.consume("/", TokenType.SLASH)
+                    self.consume("/", TokenType.SLASH)
+                    comment = ""
+                    while t := self.peek():
+                        if t == "\n":
+                            break
+                        comment += t
+                        self.pos += 1
+                    self.tokens.append(Token("//", TokenType.COMMENT, comment))
                 case "<" if self.peek(1) == "=" and self.peek(2) == ">":
                     self.consume("<", TokenType.LESS)
                     self.consume("=", TokenType.EQUAL)
@@ -107,6 +133,10 @@ class Tokenizer:
                     self.tokens.append(
                         Token(identifier, TokenType.IDENTIFIER, identifier)
                     )
+                case "\n":
+                    self.tokens.append(self.consume("\n", TokenType.NEW_LINE))
+                case "\t" | " " | "":
+                    self.pos += 1
                 case _:
                     raise ValueError(f"Invalid Character: {c}")
 

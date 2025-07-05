@@ -32,6 +32,11 @@ class Parser:
         return node
 
     def parse(self):
+        return self.parse_commentary()
+
+    def parse_commentary(self):
+        if (t := self.peek()) and t.type == TokenType.COMMENT:
+            self.consume(TokenType.COMMENT)
         return self.parse_biconditional()
 
     def parse_biconditional(self):
@@ -61,6 +66,10 @@ class Parser:
         if not (t := self.peek()):
             return NoneExpr()
 
+        if t.type in [TokenType.NEW_LINE, TokenType.WHITESPACE]:
+            self.consume(t.type)
+            return self.parse()
+
         if t and t.type == TokenType.IDENTIFIER:
             key = self.consume(TokenType.IDENTIFIER).value
             if not isinstance(key, str):
@@ -72,13 +81,13 @@ class Parser:
                 value = self.parse_assignment()
                 self.memory[key] = value
                 return self.parse()
-            else:
-                value = self.memory.get(key)
-                if value is None:
-                    raise SyntaxError(f"No value found for variable name {key}")
-                if isinstance(value, Expr):
-                    return value
-                return LiteralExpr(value)
+
+            value = self.memory.get(key)
+            if value is None:
+                raise SyntaxError(f"No value found for variable name {key}")
+            if isinstance(value, Expr):
+                return value
+            return LiteralExpr(value)
         elif t and t.type == TokenType.OPEN_P:
             self.consume(TokenType.OPEN_P)
             expr = self.parse_or()
@@ -96,6 +105,12 @@ class Parser:
 
         if t.type == TokenType.LITERAL:
             value = self.consume(TokenType.LITERAL).value
+            if next_t := self.peek():
+                if next_t.type not in [TokenType.NEW_LINE]:
+                    raise SyntaxError(
+                        "Invalid variable assignment. It should be followed by new line or a ','"
+                    )
+                self.consume(next_t.type)
             match value:
                 case "0":
                     return False

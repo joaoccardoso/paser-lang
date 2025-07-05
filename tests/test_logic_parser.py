@@ -155,3 +155,30 @@ def test_invalid_token():
         tokens = tkz.tokenize()
         parser = Parser(tokens)
         parser.parse()
+
+
+def test_assignment_with_newline():
+    stmt = "A := 1\nB := 0\nR := A ^ B\nR"
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens)
+    result = parser.parse()
+    assert result.eval() == 0
+
+
+def test_comment_only_line():
+    stmt = "// this is a comment only line\nA := 1\nB := 0\nR := A v B\nR"
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens)
+    result = parser.parse()
+    assert result.eval() == 1
+
+
+def test_assignment_without_newline_should_fail():
+    stmt = "A := 1 B := 0\nR := A ^ B\nR"
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens)
+    with pytest.raises(SyntaxError):
+        parser.parse()
