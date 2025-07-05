@@ -13,9 +13,10 @@ A Python project with two main components:
 - Provides clear error messages for invalid input
 
 ### logic_parser
-- Tokenizes and parses propositional logic expressions (supports `~` (NOT), `^` (AND), `v` (OR), identifiers, parentheses)
+- Tokenizes and parses propositional logic expressions (supports `~` (NOT), `^` (AND), `v` (OR), `!=` (XOR), `=>` (IMPLICATION), `<=>` (BICONDITIONAL), identifiers, parentheses)
 - Evaluates logic expressions with variable assignment (`:=`)
-- Supports operator precedence: NOT > AND > OR
+- Supports operator precedence: `NOT` > `AND` > `XOR` > `OR` > `IMPLICATION` > `BICONDITIONAL`
+- Includes an interactive REPL for logic expressions
 
 ## Requirements
 
@@ -76,6 +77,25 @@ if __name__ == "__main__":
     main()
 ```
 
+### 3. Run the Logic REPL
+
+You can interactively evaluate logic expressions using the REPL:
+
+```sh
+python -m logic_parser.main
+```
+
+Example session:
+```
+Positional Logic REPL
+?> A := 1
+?> B := 0
+?> R := (A ^ B) => ~(A v B)
+?> R
+True
+```
+Press Ctrl+C to exit the REPL.
+
 ## Running tests
 
 ```sh
@@ -91,7 +111,8 @@ json_parser/
 logic_parser/
     token.py      # Logic tokenizer and token definitions
     parser.py     # Logic parser and evaluator
-main.py          # Example usage
+    repl.py       # Interactive REPL for logic expressions
+    main.py       # Entry point for REPL
 /tests/
     test_json_parser.py  # Pytest test cases for JSON parser
     test_logic_parser.py # Pytest test cases for logic parser
