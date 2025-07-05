@@ -3,21 +3,33 @@ import enum
 from typing import Any, Optional
 
 
-RESERVED_SYMBOLS = ":()^~= \n\t"
+RESERVED_SYMBOLS = "!<>:()^~=\n\t "
 
 
 class TokenType(enum.Enum):
     WHITESPACE = enum.auto()
+
     OPEN_P = enum.auto()
     CLOSE_P = enum.auto()
+
+    # Value Tokens
     IDENTIFIER = enum.auto()
     LITERAL = enum.auto()
+
+    # Operators
     OR = enum.auto()
     AND = enum.auto()
     NOT = enum.auto()
+    IMPLICATION = enum.auto()
+    BICONDITIONAL = enum.auto()
+    XOR = enum.auto()
+
+    GREATER = enum.auto()
+    LESS = enum.auto()
+    BANG = enum.auto()
     EQUAL = enum.auto()
-    ASSIGN = enum.auto()
     COLON = enum.auto()
+    ASSIGN = enum.auto()
 
 
 @dataclass
@@ -61,8 +73,21 @@ class Tokenizer:
                     self.tokens.append(self.consume("(", TokenType.OPEN_P))
                 case ")":
                     self.tokens.append(self.consume(")", TokenType.CLOSE_P))
+                case "<" if self.peek(1) == "=" and self.peek(2) == ">":
+                    self.consume("<", TokenType.LESS)
+                    self.consume("=", TokenType.EQUAL)
+                    self.consume(">", TokenType.GREATER)
+                    self.tokens.append(Token("<=>", TokenType.BICONDITIONAL))
+                case "=" if self.peek(1) == ">":
+                    self.consume("=", TokenType.EQUAL)
+                    self.consume(">", TokenType.GREATER)
+                    self.tokens.append(Token("=>", TokenType.IMPLICATION))
                 case "=":
                     self.tokens.append(self.consume("=", TokenType.EQUAL))
+                case "!" if self.peek(1) == "=":
+                    self.consume("!", TokenType.BANG)
+                    self.consume("=", TokenType.EQUAL)
+                    self.tokens.append(Token("!=", TokenType.XOR))
                 case "0" | "1":
                     self.pos += 1
                     self.tokens.append(Token(c, TokenType.LITERAL, c))

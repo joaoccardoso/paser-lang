@@ -34,6 +34,33 @@ def test_tokenize_or():
     assert token.TokenType.OR in types
 
 
+def test_tokenize_implication():
+    stmt = "A => B"
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    types = [t.type for t in tokens]
+    assert token.TokenType.IMPLICATION in types
+    assert any(t.token == "=>" for t in tokens)
+
+
+def test_tokenize_biconditional():
+    stmt = "A <=> B"
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    types = [t.type for t in tokens]
+    assert token.TokenType.BICONDITIONAL in types
+    assert any(t.token == "<=>" for t in tokens)
+
+
+def test_tokenize_xor():
+    stmt = "A != B"
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    types = [t.type for t in tokens]
+    assert token.TokenType.XOR in types
+    assert any(t.token == "!=" for t in tokens)
+
+
 # Parser and evaluation tests
 def test_parse_and_eval_simple():
     stmt = "ABC := 1\nB := 0\nR := ABC ^ B\nR"
@@ -78,6 +105,47 @@ def test_parse_and_eval_parentheses():
     parser = Parser(tokens)
     result = parser.parse()
     assert result.eval() == 0
+
+
+def test_parse_and_eval_implication():
+    stmt = "A := 1\nB := 0\nR := A => B\nR"
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens)
+    result = parser.parse()
+    assert result.eval() == 0
+
+
+def test_parse_and_eval_biconditional():
+    stmt = "A := 1\nB := 1\nR := A <=> B\nR"
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens)
+    result = parser.parse()
+    assert result.eval() == 1
+
+    stmt2 = "A := 1\nB := 0\nR := A <=> B\nR"
+    tkz2 = token.Tokenizer(stmt2)
+    tokens2 = tkz2.tokenize()
+    parser2 = Parser(tokens2)
+    result2 = parser2.parse()
+    assert result2.eval() == 0
+
+
+def test_parse_and_eval_xor():
+    stmt = "A := 1\nB := 0\nR := A != B\nR"
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens)
+    result = parser.parse()
+    assert result.eval() == 1
+
+    stmt2 = "A := 1\nB := 1\nR := A != B\nR"
+    tkz2 = token.Tokenizer(stmt2)
+    tokens2 = tkz2.tokenize()
+    parser2 = Parser(tokens2)
+    result2 = parser2.parse()
+    assert result2.eval() == 0
 
 
 def test_invalid_token():

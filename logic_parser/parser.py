@@ -10,7 +10,7 @@ class Expr(abc.ABC):
 
 
 @dataclass
-class ValueExpr(Expr):
+class LiteralExpr(Expr):
     value: Any
 
     def eval(self):
@@ -37,11 +37,19 @@ class BinaryExpr(Expr):
     l_operand: Expr
 
     def eval(self):
+        A = self.r_operand.eval()
+        B = self.l_operand.eval()
         match self.operator:
+            case TokenType.BICONDITIONAL:
+                return (A and B) or (not A and not B)
+            case TokenType.IMPLICATION:
+                return (not A) or B
             case TokenType.OR:
-                return self.r_operand.eval() or self.l_operand.eval()
+                return A or B
+            case TokenType.XOR:
+                return (A or B) and not (A and B)
             case TokenType.AND:
-                return self.r_operand.eval() and self.l_operand.eval()
+                return A and B
             case _:
                 raise NotImplementedError(f"Operator {self.operator} not implemented.")
 
@@ -72,14 +80,38 @@ class Parser:
         return t
 
     def parse(self):
-        return self.parse_or()
+        return self.parse_biconditional()
+
+    def parse_biconditional(self):
+        node = self.parse_implication()
+        while (t := self.peek()) and t.type == TokenType.BICONDITIONAL:
+            self.consume(TokenType.BICONDITIONAL)
+            right = self.parse_implication()
+            node = BinaryExpr(TokenType.BICONDITIONAL, node, right)
+        return node
+
+    def parse_implication(self):
+        node = self.parse_or()
+        while (t := self.peek()) and t.type == TokenType.IMPLICATION:
+            self.consume(TokenType.IMPLICATION)
+            right = self.parse_or()
+            node = BinaryExpr(TokenType.IMPLICATION, node, right)
+        return node
 
     def parse_or(self):
-        node = self.parse_and()
+        node = self.parse_xor()
         while (t := self.peek()) and t.type == TokenType.OR:
             self.consume(TokenType.OR)
-            right = self.parse_and()
+            right = self.parse_xor()
             node = BinaryExpr(TokenType.OR, node, right)
+        return node
+
+    def parse_xor(self):
+        node = self.parse_and()
+        while (t := self.peek()) and t.type == TokenType.XOR:
+            self.consume(TokenType.XOR)
+            right = self.parse_and()
+            node = BinaryExpr(TokenType.XOR, node, right)
         return node
 
     def parse_and(self):
@@ -119,7 +151,7 @@ class Parser:
                     raise SyntaxError(f"No value found for variable name {key}")
                 if isinstance(value, Expr):
                     return value
-                return ValueExpr(value)
+                return LiteralExpr(value)
         elif t and t.type == TokenType.OPEN_P:
             self.consume(TokenType.OPEN_P)
             expr = self.parse_or()
