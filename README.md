@@ -18,6 +18,8 @@ A Python project with two main components:
 - Supports operator precedence: `NOT` > `AND` > `XOR` > `OR` > `IMPLICATION` > `BICONDITIONAL`
 - Includes an interactive REPL for logic expressions
 - Can run logic files directly from the command line
+- Supports parsing and evaluation of multiple statements/identifiers in sequence (see `parse_all`)
+- Tracks line and column for tokens and parser errors for better diagnostics
 
 ## Requirements
 
@@ -100,7 +102,28 @@ True
 ```
 Press Ctrl+C to exit the REPL.
 
-### 4. Large Example
+### 4. Parse all statements/identifiers in sequence
+
+You can use `parse_all()` to parse and evaluate multiple statements or identifiers in sequence:
+
+```python
+stmt = """
+A := 1
+B := 0
+C := 1
+A
+B
+C
+"""
+tokens = token.tokenize(stmt)
+parser = Parser(tokens)
+results = list(parser.parse_all())
+assert results[-3].eval() is True  # A
+assert results[-2].eval() is False # B
+assert results[-1].eval() is True  # C
+```
+
+### 5. Large Example
 
 You can use a large example to test all features at once:
 
@@ -145,6 +168,22 @@ BIC1
 BIC2
 NESTED
 RESULT
+```
+
+## Error Reporting
+
+- **Parser and tokenizer errors** include line and column information to help you quickly locate issues in your logic files.
+- **In the REPL**, errors are printed with details about the line and position where the error occurred.
+- **When running a file**, any error will display a message with the line and column, as well as the problematic token, making debugging easier.
+
+Example error message:
+```
+./file_name.pl:3:5: No value found for variable name 'X'.
+```
+Or in the REPL:
+```
+?> X
+Error at position 1: No value found for variable name 'X'
 ```
 
 ## Running tests
