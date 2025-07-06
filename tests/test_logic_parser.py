@@ -250,6 +250,46 @@ def test_large_example():
     assert "RESULT" in parser.memory
 
 
+def test_parse_all_multiple_identifiers():
+    stmt = """
+    A := 1
+    B := 0
+    C := 1
+    A
+    B
+    C
+    """
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens)
+    results = list(parser.parse_all())
+    # The last three expressions are identifiers, so their eval should match the assignments
+    assert results[-3].eval() is True  # A
+    assert results[-2].eval() is False  # B
+    assert results[-1].eval() is True  # C
+
+
+def test_parse_all_with_comments_and_blank_lines():
+    stmt = """
+    // Assignments
+    X := 1
+
+    // Another assignment
+    Y := 0
+
+    // Now just identifiers
+    X
+    Y
+    """
+    tkz = token.Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens)
+    results = list(parser.parse_all())
+    # The last two expressions are identifiers
+    assert results[-2].eval() is True  # X
+    assert results[-1].eval() is False  # Y
+
+
 def assert_memory_entry(value: Expr | bool, expected_value: bool):
     if isinstance(value, Expr):
         assert value.eval() == expected_value

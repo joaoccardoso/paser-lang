@@ -33,6 +33,17 @@ class Parser:
             node = BinaryExpr(type, node, right)
         return node
 
+    def parse_all(self):
+        while self.pos < len(self.tokens):
+            while (t := self.peek()) and t.type in [
+                TokenType.WHITESPACE,
+                TokenType.NEW_LINE,
+            ]:
+                self.consume(t.type)
+            if self.pos >= len(self.tokens):
+                break
+            yield self.parse_commentary()
+
     def parse(self):
         return self.parse_commentary()
 
@@ -119,9 +130,9 @@ class Parser:
                 self.consume(next_t.type)
             match value:
                 case "0":
-                    return False
+                    return LiteralExpr(False)
                 case "1":
-                    return True
+                    return LiteralExpr(True)
                 case _:
                     raise NotImplementedError(f"Unknown literal: {value}")
         else:

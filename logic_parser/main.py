@@ -20,8 +20,9 @@ def main():
         with open(sys.argv[1], "r") as f:
             content = f.read()
         tokens = Tokenizer(content).tokenize()
-        result = Parser(tokens).parse()
-        print(result.eval())
+        for result in Parser(tokens).parse_all():
+            print(result.eval())
+
     else:
         REPL().run()
 
