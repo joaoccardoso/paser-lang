@@ -1,4 +1,5 @@
 from typing import Callable
+from logic_parser.exceptions import ParserError
 from logic_parser.expr import BinaryExpr, Expr, LiteralExpr, NoneExpr, UnaryExpr
 from logic_parser.token import Token, TokenType
 
@@ -19,9 +20,12 @@ class Parser:
 
     def consume(self, expected_type: TokenType):
         if not (t := self.peek()):
-            raise SyntaxError("Unexpected end of input")
+            raise ParserError("Unexpected end of input", token=t)
         if t.type != expected_type:
-            raise SyntaxError(f"Expected type {expected_type} got {t.type}")
+            raise ParserError(
+                f"Expected type '{expected_type}' got '{t.type}'",
+                token=t,
+            )
         self.pos += 1
         return t
 
@@ -90,7 +94,7 @@ class Parser:
         if t and t.type == TokenType.IDENTIFIER:
             key = self.consume(TokenType.IDENTIFIER).value
             if not isinstance(key, str):
-                raise SyntaxError(f"Invalid variable name {key}")
+                raise ParserError(f"Invalid variable name '{key}'", token=t)
 
             next_t = self.peek()
             if next_t and next_t.type == TokenType.ASSIGN:
@@ -101,7 +105,7 @@ class Parser:
 
             value = self.memory.get(key)
             if value is None:
-                raise SyntaxError(f"No value found for variable name {key}")
+                raise ParserError(f"No value found for variable name '{key}'", token=t)
             if isinstance(value, Expr):
                 return value
             return LiteralExpr(value)
@@ -111,21 +115,23 @@ class Parser:
             self.consume(TokenType.CLOSE_P)
             return expr
         else:
-            raise SyntaxError(f"Unexpected Token: {t}")
+            raise ParserError(f"Unexpected Token: '{t.token}'", token=t)
 
     def parse_assignment(self):
         t = self.peek()
         if not t:
-            raise SyntaxError(
-                "Invalid assignment syntax. Variables should receive Identifiers, Literals or Expressions"
+            raise ParserError(
+                "Invalid assignment syntax. Variables should receive Identifiers, Literals or Expressions",
+                token=t,
             )
 
         if t.type == TokenType.LITERAL:
             value = self.consume(TokenType.LITERAL).value
             if next_t := self.peek():
                 if next_t.type not in [TokenType.NEW_LINE]:
-                    raise SyntaxError(
-                        "Invalid variable assignment. It should be followed by new line or a ','"
+                    raise ParserError(
+                        "Invalid variable assignment. It should be followed by new line or a ','",
+                        token=t,
                     )
                 self.consume(next_t.type)
             match value:

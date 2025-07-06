@@ -1,5 +1,6 @@
+from logic_parser.exceptions import ParserError, TokenizerError
 from logic_parser.parser import Parser
-from logic_parser.token import Tokenizer
+from logic_parser.tokenizer import Tokenizer
 
 
 class REPL:
@@ -24,6 +25,13 @@ class REPL:
         except KeyboardInterrupt:
             print("\nExiting REPL")
             return False
+        except TokenizerError as t_err:
+            print(f"Error at position {t_err.line_pos + 1}: {t_err}.")
+        except ParserError as p_err:
+            if p_err.token:
+                print(f"Error at position {p_err.token.line_pos + 1}: {p_err}.")
+            else:
+                print(f"Error: {p_err}.")
         except Exception as e:
             print(e)
 

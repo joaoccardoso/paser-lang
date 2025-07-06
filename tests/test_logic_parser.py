@@ -1,13 +1,15 @@
 import pytest
 from logic_parser import token
+from logic_parser.exceptions import ParserError, TokenizerError
 from logic_parser.expr import Expr
 from logic_parser.parser import Parser
+from logic_parser.tokenizer import Tokenizer
 
 
 # Tokenizer tests
 def test_tokenize_simple_logic():
     stmt = "A ^ B"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     types = [t.type for t in tokens]
     assert types == [
@@ -21,7 +23,7 @@ def test_tokenize_simple_logic():
 
 def test_tokenize_not():
     stmt = "~A"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     types = [t.type for t in tokens]
     assert types == [token.TokenType.NOT, token.TokenType.IDENTIFIER]
@@ -29,7 +31,7 @@ def test_tokenize_not():
 
 def test_tokenize_or():
     stmt = "A v B"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     types = [t.type for t in tokens]
     assert token.TokenType.OR in types
@@ -37,7 +39,7 @@ def test_tokenize_or():
 
 def test_tokenize_implication():
     stmt = "A => B"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     types = [t.type for t in tokens]
     assert token.TokenType.IMPLICATION in types
@@ -46,7 +48,7 @@ def test_tokenize_implication():
 
 def test_tokenize_biconditional():
     stmt = "A <=> B"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     types = [t.type for t in tokens]
     assert token.TokenType.BICONDITIONAL in types
@@ -55,17 +57,34 @@ def test_tokenize_biconditional():
 
 def test_tokenize_xor():
     stmt = "A != B"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     types = [t.type for t in tokens]
     assert token.TokenType.XOR in types
     assert any(t.token == "!=" for t in tokens)
 
 
+def test_tokenizer_line_and_line_pos():
+    stmt = "A := 1\nB := 0\n  C := 1\n"
+    tkz = Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    # Check line and line_pos for some tokens
+    a_token = tokens[0]
+    assert a_token.token == "A"
+    assert a_token.line == 1
+    assert a_token.line_pos == 1
+    b_token = next(t for t in tokens if t.token == "B")
+    assert b_token.line == 2
+    assert b_token.line_pos == 1
+    c_token = next(t for t in tokens if t.token == "C")
+    assert c_token.line == 3
+    assert c_token.line_pos == 3  # two spaces before C
+
+
 # Parser and evaluation tests
 def test_parse_and_eval_simple():
     stmt = "ABC := 1\nB := 0\nR := ABC ^ B\nR"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
@@ -74,7 +93,7 @@ def test_parse_and_eval_simple():
 
 def test_parse_and_eval_not():
     stmt = "A := 0\nR := ~A\nR"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
@@ -83,7 +102,7 @@ def test_parse_and_eval_not():
 
 def test_parse_and_eval_or():
     stmt = "A := 0\nB := 1\nR := A v B\nR"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
@@ -92,7 +111,7 @@ def test_parse_and_eval_or():
 
 def test_parse_and_eval_precedence():
     stmt = "A := 1\nB := 0\nC := 1\nR := ~(A ^ B) v C\nR"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
@@ -101,7 +120,7 @@ def test_parse_and_eval_precedence():
 
 def test_parse_and_eval_parentheses():
     stmt = "A := 1\nB := 0\nR := ~(A ^ (B v A))\nR"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
@@ -110,7 +129,7 @@ def test_parse_and_eval_parentheses():
 
 def test_parse_and_eval_implication():
     stmt = "A := 1\nB := 0\nR := A => B\nR"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
@@ -119,14 +138,14 @@ def test_parse_and_eval_implication():
 
 def test_parse_and_eval_biconditional():
     stmt = "A := 1\nB := 1\nR := A <=> B\nR"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
     assert result.eval() == 1
 
     stmt2 = "A := 1\nB := 0\nR := A <=> B\nR"
-    tkz2 = token.Tokenizer(stmt2)
+    tkz2 = Tokenizer(stmt2)
     tokens2 = tkz2.tokenize()
     parser2 = Parser(tokens2)
     result2 = parser2.parse()
@@ -135,14 +154,14 @@ def test_parse_and_eval_biconditional():
 
 def test_parse_and_eval_xor():
     stmt = "A := 1\nB := 0\nR := A != B\nR"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
     assert result.eval() == 1
 
     stmt2 = "A := 1\nB := 1\nR := A != B\nR"
-    tkz2 = token.Tokenizer(stmt2)
+    tkz2 = Tokenizer(stmt2)
     tokens2 = tkz2.tokenize()
     parser2 = Parser(tokens2)
     result2 = parser2.parse()
@@ -151,8 +170,8 @@ def test_parse_and_eval_xor():
 
 def test_invalid_token():
     stmt = "A = 1\nB = 0\nR = A $ B\nR"
-    with pytest.raises(ValueError):
-        tkz = token.Tokenizer(stmt)
+    with pytest.raises(TokenizerError):
+        tkz = Tokenizer(stmt)
         tokens = tkz.tokenize()
         parser = Parser(tokens)
         parser.parse()
@@ -160,7 +179,7 @@ def test_invalid_token():
 
 def test_assignment_with_newline():
     stmt = "A := 1\nB := 0\nR := A ^ B\nR"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
@@ -169,7 +188,7 @@ def test_assignment_with_newline():
 
 def test_comment_only_line():
     stmt = "// this is a comment only line\nA := 1\nB := 0\nR := A v B\nR"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
     result = parser.parse()
@@ -178,10 +197,10 @@ def test_comment_only_line():
 
 def test_assignment_without_newline_should_fail():
     stmt = "A := 1 B := 0\nR := A ^ B\nR"
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
-    with pytest.raises(SyntaxError):
+    with pytest.raises(ParserError):
         parser.parse()
 
 
@@ -228,7 +247,7 @@ def test_large_example():
     NESTED
     RESULT
     """
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
     _ = parser.parse()
@@ -259,7 +278,7 @@ def test_parse_all_multiple_identifiers():
     B
     C
     """
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
     results = list(parser.parse_all())
@@ -281,13 +300,22 @@ def test_parse_all_with_comments_and_blank_lines():
     X
     Y
     """
-    tkz = token.Tokenizer(stmt)
+    tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
     parser = Parser(tokens)
     results = list(parser.parse_all())
     # The last two expressions are identifiers
     assert results[-2].eval() is True  # X
     assert results[-1].eval() is False  # Y
+
+
+def test_parser_error_line_and_line_pos():
+    stmt = "A := 1\nB := 0\nC := 1\nD := 2\n"
+    with pytest.raises(TokenizerError) as t_err:
+        tkz = Tokenizer(stmt)
+        tkz.tokenize()
+    assert t_err.value.line == 4
+    assert t_err.value.line_pos == 5
 
 
 def assert_memory_entry(value: Expr | bool, expected_value: bool):
