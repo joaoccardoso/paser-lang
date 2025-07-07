@@ -86,7 +86,7 @@ def test_parse_and_eval_simple():
     stmt = "ABC := 1\nB := 0\nR := ABC ^ B\nR"
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     result = parser.parse()
     assert result.eval() == 0
 
@@ -95,7 +95,7 @@ def test_parse_and_eval_not():
     stmt = "A := 0\nR := ~A\nR"
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     result = parser.parse()
     assert result.eval() == 1 or result.eval() is True
 
@@ -104,7 +104,7 @@ def test_parse_and_eval_or():
     stmt = "A := 0\nB := 1\nR := A v B\nR"
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     result = parser.parse()
     assert result.eval() == 1
 
@@ -113,7 +113,7 @@ def test_parse_and_eval_precedence():
     stmt = "A := 1\nB := 0\nC := 1\nR := ~(A ^ B) v C\nR"
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     result = parser.parse()
     assert result.eval() == 1
 
@@ -122,7 +122,7 @@ def test_parse_and_eval_parentheses():
     stmt = "A := 1\nB := 0\nR := ~(A ^ (B v A))\nR"
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     result = parser.parse()
     assert result.eval() == 0
 
@@ -131,7 +131,7 @@ def test_parse_and_eval_implication():
     stmt = "A := 1\nB := 0\nR := A => B\nR"
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     result = parser.parse()
     assert result.eval() == 0
 
@@ -140,7 +140,7 @@ def test_parse_and_eval_biconditional():
     stmt = "A := 1\nB := 1\nR := A <=> B\nR"
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     result = parser.parse()
     assert result.eval() == 1
 
@@ -156,7 +156,7 @@ def test_parse_and_eval_xor():
     stmt = "A := 1\nB := 0\nR := A != B\nR"
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     result = parser.parse()
     assert result.eval() == 1
 
@@ -173,7 +173,7 @@ def test_invalid_token():
     with pytest.raises(TokenizerError):
         tkz = Tokenizer(stmt)
         tokens = tkz.tokenize()
-        parser = Parser(tokens)
+        parser = Parser(tokens, {})
         parser.parse()
 
 
@@ -181,7 +181,7 @@ def test_assignment_with_newline():
     stmt = "A := 1\nB := 0\nR := A ^ B\nR"
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     result = parser.parse()
     assert result.eval() == 0
 
@@ -190,7 +190,7 @@ def test_comment_only_line():
     stmt = "// this is a comment only line\nA := 1\nB := 0\nR := A v B\nR"
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     result = parser.parse()
     assert result.eval() == 1
 
@@ -199,7 +199,7 @@ def test_assignment_without_newline_should_fail():
     stmt = "A := 1 B := 0\nR := A ^ B\nR"
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     with pytest.raises(ParserError):
         parser.parse()
 
@@ -249,7 +249,7 @@ def test_large_example():
     """
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     _ = parser.parse()
 
     assert_memory_entry(parser.memory["A"], True)
@@ -280,7 +280,7 @@ def test_parse_all_multiple_identifiers():
     """
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     results = list(parser.parse_all())
     # The last three expressions are identifiers, so their eval should match the assignments
     assert results[-3].eval() is True  # A
@@ -302,7 +302,7 @@ def test_parse_all_with_comments_and_blank_lines():
     """
     tkz = Tokenizer(stmt)
     tokens = tkz.tokenize()
-    parser = Parser(tokens)
+    parser = Parser(tokens, {})
     results = list(parser.parse_all())
     # The last two expressions are identifiers
     assert results[-2].eval() is True  # X
@@ -323,3 +323,122 @@ def assert_memory_entry(value: Expr | bool, expected_value: bool):
         assert value.eval() == expected_value
     else:
         assert value == expected_value
+
+
+def test_function_definition_and_call():
+    stmt = """
+    NAND(x, y) := ~(x ^ y)
+    A := 1
+    B := 0
+    R := NAND(A, B)
+    R
+    """
+    tkz = Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens, {})
+    results = list(parser.parse_all())
+    # The last result is the function call R = NAND(A, B)
+    assert results[-1].eval() is True
+    # The function should be in the parser's function table
+    assert "NAND" in parser.functions
+    assert parser.functions["NAND"].args == ["x", "y"]
+
+
+def test_function_wrong_arity():
+    stmt = """
+    NAND(x, y) := ~(x ^ y)
+    A := 1
+    R := NAND(A)
+    """
+    tkz = Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens, {})
+    with pytest.raises(Exception) as excinfo:
+        list(parser.parse_all())
+    assert "arguments" in str(excinfo.value)
+
+
+def test_function_nested_call():
+    stmt = """
+    NAND(x, y) := ~(x ^ y)
+    NOR(x, y) := ~(x v y)
+    A := 1
+    C := 0
+    R := NAND(NOR(A, C), C)
+    R
+    """
+    tkz = Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens, {})
+    results = list(parser.parse_all())
+    assert results[-1].eval() is True
+
+
+def test_function_call_undefined_function():
+    stmt = """
+    A := 1
+    B := 0
+    R := UNDEF(A, B)
+    """
+    tkz = Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens, {})
+    with pytest.raises(Exception) as excinfo:
+        list(parser.parse_all())
+    assert "Function named 'UNDEF' not found" in str(excinfo.value)
+
+
+def test_function_call_variable_as_function():
+    stmt = """
+    A := 1
+    B := 0
+    R := A(B)
+    """
+    tkz = Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens, {})
+    with pytest.raises(ParserError) as excinfo:
+        list(parser.parse_all())
+    assert "Function named 'A' not found" in str(excinfo.value)
+
+
+def test_function_call_too_many_args():
+    stmt = """
+    NAND(x, y) := ~(x ^ y)
+    A := 1
+    B := 0
+    R := NAND(A, B, B)
+    """
+    tkz = Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens, {})
+    with pytest.raises(Exception) as excinfo:
+        list(parser.parse_all())
+    assert "Expected 2 arguments for function 'NAND', got 3" in str(excinfo.value)
+
+
+def test_function_call_too_few_args():
+    stmt = """
+    NAND(x, y) := ~(x ^ y)
+    A := 1
+    R := NAND(A)
+    """
+    tkz = Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens, {})
+    with pytest.raises(Exception) as excinfo:
+        list(parser.parse_all())
+    assert "Expected 2 arguments for function 'NAND', got 1" in str(excinfo.value)
+
+
+def test_function_call_non_identifier_arg():
+    stmt = """
+    NAND(x, y) := ~(x ^ y)
+    R := NAND(B, 0)
+    """
+    tkz = Tokenizer(stmt)
+    tokens = tkz.tokenize()
+    parser = Parser(tokens, {})
+    with pytest.raises(Exception) as excinfo:
+        list(parser.parse_all())
+    assert "No value found for variable name 'B'" in str(excinfo.value)

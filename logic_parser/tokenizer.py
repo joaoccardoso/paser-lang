@@ -16,6 +16,7 @@ RESERVED_SYMBOLS = [
     TokenType.EQUAL.value,
     TokenType.COLON.value,
     TokenType.SLASH.value,
+    TokenType.COMMA.value,
 ]
 
 
@@ -66,6 +67,8 @@ class Tokenizer:
                     self.tokens.append(self.consume("(", TokenType.OPEN_P))
                 case ")":
                     self.tokens.append(self.consume(")", TokenType.CLOSE_P))
+                case ",":
+                    self.tokens.append(self.consume(",", TokenType.COMMA))
                 case "/" if self.peek(1) == "/":
                     self.consume("/", TokenType.SLASH)
                     self.consume("/", TokenType.SLASH)

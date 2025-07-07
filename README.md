@@ -170,9 +170,55 @@ NESTED
 RESULT
 ```
 
+### 6. Function Support and Error Handling
+
+You can define and call functions in the logic language. Functions support argument checking, nested calls, and robust error reporting for invalid usage.
+
+**Function definition and call:**
+
+```python
+stmt = """
+NAND(x, y) := ~(x ^ y)
+A := 1
+B := 0
+R := NAND(A, B)
+R
+"""
+tokens = token.tokenize(stmt)
+parser = Parser(tokens)
+results = list(parser.parse_all())
+assert results[-1].eval() is True
+```
+
+**Function call error cases:**
+
+The parser will raise clear errors for the following cases:
+- Calling an undefined function
+- Calling a variable as a function
+- Too many or too few arguments
+- Passing non-identifiers as arguments
+
+Example:
+```python
+stmt = """
+NAND(x, y) := ~(x ^ y)
+A := 1
+R := NAND(A)  # Too few arguments
+"""
+tokens = token.tokenize(stmt)
+parser = Parser(tokens)
+try:
+    list(parser.parse_all())
+except Exception as e:
+    print(e)  # Expected 2 arguments for function 'NAND', got 1
+```
+
+See the test suite (`tests/test_logic_parser.py`) for comprehensive tests covering all function-related error cases.
+
 ## Error Reporting
 
 - **Parser and tokenizer errors** include line and column information to help you quickly locate issues in your logic files.
+- **Function call errors** (undefined function, wrong arity, invalid arguments, etc.) are reported with clear messages and diagnostics.
 - **In the REPL**, errors are printed with details about the line and position where the error occurred.
 - **When running a file**, any error will display a message with the line and column, as well as the problematic token, making debugging easier.
 

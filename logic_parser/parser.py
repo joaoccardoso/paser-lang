@@ -1,7 +1,15 @@
+from dataclasses import dataclass
 from typing import Callable
 from logic_parser.exceptions import ParserError
 from logic_parser.expr import BinaryExpr, Expr, LiteralExpr, NoneExpr, UnaryExpr
 from logic_parser.token import Token, TokenType
+
+
+@dataclass
+class Function:
+    name: str
+    args: list[str]
+    tokens: list[Token]
 
 
 class Parser:
@@ -10,6 +18,7 @@ class Parser:
     ) -> None:
         self.tokens = tokens
         self.memory = memory
+        self.functions: dict[str, Function] = {}
         self.pos = 0
 
     def peek(self, next: int = 0):
@@ -23,7 +32,7 @@ class Parser:
             raise ParserError("Unexpected end of input", token=t)
         if t.type != expected_type:
             raise ParserError(
-                f"Expected type '{expected_type}' got '{t.type}'",
+                f"Expected type '{expected_type.value}' got '{t.type.value}'",
                 token=t,
             )
         self.pos += 1
@@ -97,6 +106,57 @@ class Parser:
                 raise ParserError(f"Invalid variable name '{key}'", token=t)
 
             next_t = self.peek()
+
+            if next_t and next_t.type == TokenType.OPEN_P:
+                self.consume(TokenType.OPEN_P)
+                args = []
+                while next_t := self.peek():
+                    arg_id = self.consume(TokenType.IDENTIFIER)
+                    args.append(arg_id.token)
+                    next_t = self.peek()
+                    if not next_t:
+                        raise ParserError("Invalid function declaration", token=next_t)
+                    if next_t.type == TokenType.CLOSE_P:
+                        self.consume(TokenType.CLOSE_P)
+                        break
+                    elif next_t.type == TokenType.COMMA:
+                        self.consume(TokenType.COMMA)
+                    else:
+                        raise ParserError("Invalid function declaration", token=next_t)
+
+                next_t = self.peek()
+                if next_t and next_t.type == TokenType.ASSIGN:
+                    self.consume(TokenType.ASSIGN)
+                    func_tokens = []
+                    while func_t := self.peek():
+                        self.consume(func_t.type)
+                        if func_t.type == TokenType.NEW_LINE:
+                            break
+                        func_tokens.append(func_t)
+
+                    self.functions[key] = Function(key, args, func_tokens)
+                    return self.parse()
+
+                if next_t and next_t.type == TokenType.COMMA:
+                    func = self.functions[key]
+                    if len(args) != len(func.args):
+                        raise ParserError(
+                            f"Expected {len(func.args)} arguments for function '{func.name}', got {len(args)}",
+                            token=next_t,
+                        )
+
+                    local_memory = {}
+                    for i, arg in enumerate(func.args):
+                        if val := self.memory.get(args[i]):
+                            local_memory[arg] = val
+                        else:
+                            raise ParserError(
+                                f"No value found for variable name '{key}'", token=t
+                            )
+
+                    local_parser = Parser(func.tokens, local_memory)
+                    return local_parser.parse()
+
             if next_t and next_t.type == TokenType.ASSIGN:
                 self.consume(TokenType.ASSIGN)
                 value = self.parse_assignment()
@@ -108,7 +168,20 @@ class Parser:
                 raise ParserError(f"No value found for variable name '{key}'", token=t)
             if isinstance(value, Expr):
                 return value
-            return LiteralExpr(value)
+            if isinstance(value, Token):
+                if value.value == "0":
+                    return LiteralExpr(False)
+                if value.value == "1":
+                    return LiteralExpr(True)
+                else:
+                    raise ParserError(
+                        f"Invalid token value '{value.value}'",
+                        token=next_t,
+                    )
+            if isinstance(value, bool):
+                return LiteralExpr(value)
+            else:
+                raise ParserError(f"Invalid assignment value '{value}'", token=next_t)
         elif t and t.type == TokenType.OPEN_P:
             self.consume(TokenType.OPEN_P)
             expr = self.parse()
@@ -141,5 +214,46 @@ class Parser:
                     return LiteralExpr(True)
                 case _:
                     raise NotImplementedError(f"Unknown literal: {value}")
+
+        next_t = self.peek(1)
+        if (
+            t.type == TokenType.IDENTIFIER
+            and isinstance(t.value, str)
+            and next_t
+            and next_t.type == TokenType.OPEN_P
+        ):
+            self.consume(TokenType.IDENTIFIER)
+            self.consume(TokenType.OPEN_P)
+
+            if not (func := self.functions.get(t.value)):
+                raise ParserError(f"Function named '{t.value}' not found")
+
+            expected_args = args = func.args
+            args = []
+            while next_t := self.peek():
+                arg = self.parse()
+                args.append(arg)
+                next_t = self.peek()
+                if not next_t:
+                    raise ParserError("Invalid function usage", token=next_t)
+                if next_t.type == TokenType.CLOSE_P:
+                    self.consume(TokenType.CLOSE_P)
+                    break
+                elif next_t.type == TokenType.COMMA:
+                    self.consume(TokenType.COMMA)
+                else:
+                    raise ParserError("Invalid function usage", token=next_t)
+
+            if len(args) != len(expected_args):
+                raise ParserError(
+                    f"Expected {len(expected_args)} arguments for function '{func.name}', got {len(args)}",
+                    token=next_t,
+                )
+
+            local_memory = {arg: args[i] for i, arg in enumerate(expected_args)}
+            local_parser = Parser(func.tokens, local_memory)
+
+            return local_parser.parse()
+
         else:
             return self.parse()

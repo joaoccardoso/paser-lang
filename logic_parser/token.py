@@ -31,6 +31,7 @@ class TokenType(enum.Enum):
     COLON = ":"
     ASSIGN = ":="
     SLASH = "/"
+    COMMA = ","
 
 
 @dataclass
